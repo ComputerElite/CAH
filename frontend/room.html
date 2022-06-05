@@ -29,6 +29,8 @@
             var voted = false
             var overallPoints = 0
             var canVote = false
+            var winner = ""
+            var lastPoints = []
 
             setInterval(() => {
                 Send("heartbeat|" + currentState.id)
@@ -50,6 +52,7 @@
                     }
                 })
                 voted = false
+                winner = ""
                 // Reset selected cards
                 selectedCards = []
 
@@ -73,15 +76,22 @@
                 turn = true
                 state.innerHTML = "Asker will turn the cards"
                 cards.innerHTML = ""
-                currentState.selections.forEach(x => {
+                currentState.users.forEach(x => {
+                    if(lastPoints.find(p => p.nickname == x.nickname) && lastPoints.find(p => p.nickname == x.nickname).points < x.points) {
+                        winner = x.nickname
+                    }
+                })
+                lastPoints = currentState.users
+                currentState.selections.forEach(s => {
                     var c = ""
-                    x.cards.forEach(x => {
+                    s.cards.forEach(x => {
                         var org = {content: x.content, visible: x.visible}
                         if(!x.visible) x.content = "answer"
-                        c += FormatCard(x, true, false, true, org, "Flip card")
+                        c += FormatCard(x, true, false, true, org, "Flip card", s.username == winner)
                     })
                     canVote = true
-                    cards.innerHTML += `${voted ||currentState.users.map(x => x.points).reduce((a, b) => a + b, 0) != overallPoints ? `<h4>${x.username}</h4>` : (IsAsker() ? `<input type="button" value="This is the best" onclick="Vote('${x.username}')">` : "")} 
+                    if(!IsAsker()) voted = currentState.users.map(x => x.points).reduce((a, b) => a + b, 0) != overallPoints
+                    cards.innerHTML += `${voted ? `<h4>${s.username}</h4>` : (IsAsker() ? `<input type="button" value="This is the best" onclick="Vote('${s.username}')">` : "")} 
                     <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px; margin-bottom: 30px;">
                             ${c}
                         </div>`
@@ -94,7 +104,7 @@
                 voted = true
                 Send("vote|" + currentState.id + "|" + username)
                 setTimeout(() => {
-                    NextRound()
+                    Start()
                 }, 5000)
             }
 
