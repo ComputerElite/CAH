@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        {meta}
+        <style>
+            input {
+                margin: 5px;
+            }
+        </style>
+        <title>Admin panel - Zwietracht</title>
+        <meta property="og:title" content="Admin panel - Zwietracht">
+        <meta property="og:description" content="Why can you see this">
+    </head>
+    <body>
+        <div class="content">
+            <h2>Admin panel</h2>
+            <div style="display: flex; justify-content: center; flex-direction: column; align-items: center;">
+                <input type="button" value="Update server" onclick="Update()">
+                <input type="button" value="Restart server" onclick="Restart()">
+                <div style="width: 90%; background-color: var(--hightlightColor); height: 10px;"><div style="background-color: var(--highlightedColor); height: 100%; width: 0%;" id="progress"></div></div>
+                <input type="button" value="View Console. FUCK YOU IDIOT" onclick="location.href = '/console'">
+                <a id="configdown" download="ZwietrachtConfig.json">Download config</a>
+                <input type="button" value="Upload Config" onclick="Config()">
+                <table>
+                    <tr>
+                        <td class="label">Ram usage</td>
+                        <td class="value" id="ram"></td>
+                    </tr>
+                    <tr>
+                        <td class="label">Working directory</td>
+                        <td class="value" id="working"></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <script src="/script.js"></script>
+        <script>
+            localStorage.token = new URLSearchParams(window.location.search).get("token")
+            fetch("/api/servermetrics").then(res => res.json().then(res => {
+                document.getElementById("ram").innerHTML = res.ramUsageString
+                document.getElementById("working").innerHTML = res.workingDirectory
+            }))
+            function Restart() {
+                fetch("/api/restartserver", {
+                    method: "POST"
+                }).then(res => {
+                    res.text().then(res => {
+                        alert(res)
+                    })
+                })
+            }
+            document.getElementById("configdown").href = "/api/config?token=" + localStorage.token
+            const progress = document.getElementById("progress")
+            function Update() {
+                var input = document.createElement("input")
+                input.setAttribute("type", "file")
+
+                input.onchange = function (e) {
+                    if (!this.files[0]) {
+                        return;
+                    }
+
+                    var reader = new FileReader();
+                    var fileName = this.files[0].name
+                    reader.onloadend = function () {
+                        var changelog = prompt("Enter changelog (optional)")
+                        var xhr = new XMLHttpRequest()
+                        xhr.upload.addEventListener("progress", function(evt) {
+                            if (evt.lengthComputable) {
+                                var percentComplete = evt.loaded / evt.total;
+                                percentComplete = parseInt(percentComplete * 100);
+                                progress.style.width = percentComplete + "%"
+
+                                if (percentComplete === 100) {
+                                    alert("Update has started. Please reaload the page in a few seconds")
+                                }
+
+                            }
+                        }, false);
+                        xhr.open("POST", "/api/updateserver?changelog=" + changelog)
+                        xhr.setRequestHeader("token", localStorage.token)
+                        xhr.send(reader.result)
+
+                    }
+                    reader.readAsArrayBuffer(this.files[0]);
+                }
+
+                input.click()
+            }
+            function Config() {
+                var input = document.createElement("input")
+                input.setAttribute("type", "file")
+
+                input.onchange = function (e) {
+                    if (!this.files[0]) {
+                        return;
+                    }
+
+                    var reader = new FileReader();
+                    var fileName = this.files[0].name
+                    reader.onloadend = function () {
+                        afetch("/api/config", "POST", reader.result).then(res => res.text().then(res => alert(res)))
+                    }
+                    reader.readAsArrayBuffer(this.files[0]);
+                }
+
+                input.click()
+            }
+        </script>
+    </body>
+</html><!DOCTYPE html>
+<html>
+    <head>
+        {meta}
+        <title>Create card sets - Cards against ...</title>
+    </head>
+    <body>
+        <h1>Create card sets</h1>
+        <h2>Existing sets made by you</h2>
+        <div id="sets">
+
+        </div>
+        <input type="text" id="name" placeholder="name">
+        <input type="text" id="description" placeholder="description">
+        <input type="button" onclick="CreateSet()" value="Create Set">
+        <h2>Selected Set</h2>
+        <h4>Editors</h4>
+        <input type="text" class="contentInput" id="editor" placeholder="editor">
+        <input type="button" onclick="AddEditor()" value="Add Editor">
+        <div id="editors">
+
+        </div>
+        <h4>Questions</h4>
+        <input type="text" class="contentInput" id="question" placeholder="question" onkeydown="if(event.key == 'Enter') AddQuestion()">
+        <input type="button" onclick="AddQuestion()" value="Add Question">
+        <div id="questions">
+
+        </div>
+        <h4>Answers</h4>
+        <input type="text" class="contentInput" id="answer" placeholder="answer" onkeydown="if(event.key == 'Enter') AddAnswer()">
+        <input type="button" onclick="AddAnswer()" value="Add Answer">
+        <div id="answers">
+
+        </div>
+        <script src="/script.js"></script>
+        <script>
+            if(!IsLoggedIn()) location = "/login"
+            var me = {}
+            var cardSets = []
+            var currentSet = {}
+            const sets = document.getElementById("sets")
+            const editors = document.getElementById("editors")
+            FetchSets()
+
+            function CreateSet() {
+                jfetch("/api/v1/createset", "POST", JSON.stringify({
+                    name: document.getElementById("name").value,
+                    description: document.getElementById("description").value,
+                    editors: [
+                    ],
+                    white: [],
+                    black: []
+                })).then(res => {
+                    FetchSets();
+                })
+            }
+
+            function FetchSets() {
+                jfetch("/api/v1/mysets").then(res => {
+                    cardSets = res
+                    ShowSets()
+                })
+            }
+            
+            function AddQuestion() {
+                UpdateSet({black: [{
+                    content: document.getElementById("question").value
+                }], name: currentSet.name})
+                document.getElementById("question").value = ""
+            }
+
+            function AddAnswer() {
+                UpdateSet({white: [{
+                    content: document.getElementById("answer").value
+                }], name: currentSet.name})
+                document.getElementById("answer").value = ""
+            }
+
+            function RemoveBlack(card) {
+                UpdateSetRemove({black: [card], name: currentSet.name})
+            }
+
+            function RemoveWhite(card) {
+                UpdateSetRemove({white: [card], name: currentSet.name})
+            }
+
+            function AddEditor() {
+                currentSet.editors.push({nickname: document.getElementById("editor").value})
+                UpdateSetEditors()
+            }
+
+            function RemoveEditor(nickname) {
+                currentSet.editors = currentSet.editors.filter(e => e.nickname != nickname)
+                UpdateSetEditors()
+            }
+
+            function UpdateSetRemove(set) {
+                jfetch("/api/v1/removefromset", "POST", JSON.stringify(set)).then(res => {
+                    currentSet = res
+                    DisplayCardsOfSelectedSet()
+                })
+            }
+
+            function UpdateSetEditors() {
+                jfetch("/api/v1/updateeditors", "POST", JSON.stringify(currentSet)).then(res => {
+                    currentSet = res
+                    DisplayCardsOfSelectedSet()
+                })
+            }
+            
+            function UpdateSet(set) {
+                jfetch("/api/v1/addtoset", "POST", JSON.stringify(set)).then(res => {
+                    currentSet = res
+                    DisplayCardsOfSelectedSet()
+                })
+            }
+
+            function SelectSet(name) {
+                for(var i = 0; i < cardSets.length; i++) {
+                    if(cardSets[i].name == name) {
+                        currentSet = cardSets[i]
+                        break
+                    }
+                }
+                DisplayCardsOfSelectedSet()
+            }
+
+            function DisplayCardsOfSelectedSet() {
+                var s = ""
+                currentSet.black.forEach(x => {
+                    s += FormatCard(x, false)
+                })
+                questions.innerHTML = ` <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px;">
+                            ${s}
+                        </div>`
+
+                s = ""
+                currentSet.white.forEach(x => {
+                    s += FormatCard(x, true)
+                })
+                answers.innerHTML = ` <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px;">
+                            ${s}
+                        </div>`
+                s = ""
+                currentSet.editors.forEach(x => {
+                    s += FormatEditor(x)
+                })
+                editors.innerHTML = ` <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px;">
+                            ${s}
+                        </div>`
+            }
+
+            GetUserInfo().then(res => {
+                me = res
+            })
+
+            function ShowSets() {
+                var s = ""
+                cardSets.forEach(x => {
+                    s += FormatCardSet(x)
+                })
+                sets.innerHTML = ` <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px;">
+                            ${s}
+                        </div>`
+            }
+        </script>
+    </body>
+</html><!DOCTYPE html>
+<html>
+    <head>
+        <title>Cards against ...</title>
+        {meta}
+    </head>
+    <body>
+        <h1>Cards against ...</h1>
+        <h4>Funny conversations</h4>
+        <h2>Do whatever you want</h2>
+        <input type="button" onclick="location = '/play'" value="Play">
+        <input type="button" onclick="location = '/create'" value="Create Sets">
+    </body>
+</html><html>
+    <head>
+        {meta}
+    </head>
+    <body>
+        <h2>Login/Register</h2>
+        <input type="text" id="username" placeholder="username">
+        <input type="password" id="password" placeholder="password">
+        <br>
+        <input type="button" value="Register" onclick="Register()">
+        <input type="button" value="Login" onclick="Login()">
+        <div class="textbox" id="status"></div>
+        <script src="script.js"></script>
+        <script>
+            const username = document.getElementById("username");
+            const password = document.getElementById("password");
+
+            function Register() {
+                jfetch("/api/v1/createuser", "POST", JSON.stringify({
+                    username: username.value,
+                    password: password.value
+                })).then(res => {
+                    if(res.success) {
+                        localStorage.token = res.token;
+                        location = "/create"
+                        TextBoxGood("status", res.message)
+                    } else {
+                        TextBoxError("status", res.message)
+                    }
+                })
+            }
+
+            function Login() {
+                jfetch("/api/v1/login", "POST", JSON.stringify({
+                    username: username.value,
+                    password: password.value
+                })).then(res => {
+                    if(res.success) {
+                        localStorage.token = res.token;
+                        location = "/create"
+                        TextBoxGood("status", res.message)
+                    } else {
+                        TextBoxError("status", res.message)
+                    }
+                })
+            }
+        </script>
+    </body>
+</html><!DOCTYPE html>
+<html>
+    <head>
+        {meta}
+        <title>Create a room - Cards against ...</title>
+    </head>
+    <body>
+        <h1>Create a room</h1>
+        <h2>Existing sets made for everyone</h2>
+        <h4>Select the set you wanna use and we'll start playing right away</h4>
+        <div id="sets">
+
+        </div>
+        <input type="button" onclick="location = '/login'" value="Login">
+        <script src="/script.js"></script>
+        <script>
+            if(!IsLoggedIn()) location = "/login"
+            var me = {}
+            var cardSets = []
+            const sets = document.getElementById("sets")
+            FetchSets()
+
+            function FetchSets() {
+                jfetch("/api/v1/allsets").then(res => {
+                    cardSets = res
+                    ShowSets()
+                })
+            }
+
+            GetUserInfo().then(res => {
+                me = res
+            })
+
+            function SelectSet(name) {
+                jfetch("/api/v1/creategame", "POST", name).then(res => {
+                    location = "/room?id=" + res.id
+                })
+            }
+
+            function ShowSets() {
+                var s = ""
+                cardSets.forEach(x => {
+                    s += FormatCardSet(x)
+                })
+                sets.innerHTML = ` <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px;">
+                            ${s}
+                        </div>`
+            }
+        </script>
+    </body>
+</html><!DOCTYPE html>
+<html>
+    <head>
+        {meta}
+        <title>Cards against ...</title>
+    </head>
+    <body>
+        <h2 id="cardsAgainst"></h2>
+        <table id="points"></table>
+        <div id="state"></div>
+        <div id="question"></div>
+        <div id="cards"></div>
+        <input type="button" value="Next Round" onclick="Start()">
+        <script src="/script.js"></script>
+        <script>
+            var currentState = {}
+            const cardsAgainst = document.getElementById("cardsAgainst")
+            const cards = document.getElementById("cards")
+            const question = document.getElementById("question")
+            const state = document.getElementById("state")
+            const points = document.getElementById("points")
+            const params = new URLSearchParams(window.location.search)
+            var currentCards = []
+            var me = {}
+            var selectedCards = []
+            var lastQuestion = ""
+            var lastAsker = ""
+            var turn = false
+            var voted = false
+            var overallPoints = 0
+            var canVote = false
+
+            setInterval(() => {
+                Send("heartbeat|" + currentState.id)
+            }, 5000)
+
+            GetUserInfo().then(res => {
+                me = res
+            })
+
+            function OnNewRound() {
+                state.style.visibility = "hidden"
+                console.log("new round")
+                // Refill cards
+                currentState.newCards.forEach(x => {
+                    if(x.username == me.nickname) {
+                        x.cards.forEach(x => {
+                            if(currentCards.length < 10 && !currentCards.map(x => x.content).includes(x)) currentCards.push(x)
+                        })
+                    }
+                })
+                voted = false
+                // Reset selected cards
+                selectedCards = []
+
+                DisplayCurrentCards()
+            }
+
+            function Start() {
+                if(currentState.currentAsker == "" || IsAsker()) {
+                    if(!voted && IsAsker() && currentState.users.length > 1 && canVote) {
+                        alert("You must vote first")
+                    } else {
+                        Send("next|" + currentState.id)
+                    }
+                } else {
+                    alert("Only the asker can start the next round. Beg them!")
+                }
+            }
+
+            // All users submitted card selection
+            function AllUsersHaveSelected() {
+                turn = true
+                state.innerHTML = "Asker will turn the cards"
+                cards.innerHTML = ""
+                currentState.selections.forEach(x => {
+                    var c = ""
+                    x.cards.forEach(x => {
+                        var org = {content: x.content, visible: x.visible}
+                        if(!x.visible) x.content = "answer"
+                        c += FormatCard(x, true, false, true, org, "Flip card")
+                    })
+                    canVote = true
+                    cards.innerHTML += `${voted ||currentState.users.map(x => x.points).reduce((a, b) => a + b, 0) != overallPoints ? `<h4>${x.username}</h4>` : (IsAsker() ? `<input type="button" value="This is the best" onclick="Vote('${x.username}')">` : "")} 
+                    <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px; margin-bottom: 30px;">
+                            ${c}
+                        </div>`
+                        overallPoints = currentState.users.map(x => x.points).reduce((a, b) => a + b, 0)
+                })
+            }
+
+            function Vote(username) {
+                if(!IsAsker() || voted) return
+                voted = true
+                Send("vote|" + currentState.id + "|" + username)
+                setTimeout(() => {
+                    NextRound()
+                }, 5000)
+            }
+
+            function Select(card) {
+                if(turn) {
+                    // turn card
+                    if(IsAsker() && !card.visible) Send("turn|" + currentState.id + "|" + card.content)
+                } else {
+                    // select card
+                    selectedCards.push(card.content)
+                    currentCards.splice(currentCards.map(x => x.content).indexOf(card.content), 1)
+                    DisplayCurrentCards()
+                    if(selectedCards.length == currentState.currentQuestion.selectionCount) {
+                        console.log("sent selected cards to server")
+                        state.style.visibility = "visible"
+                        state.innerHTML = "Waiting for all users to submit their selections"
+                        Send("select|" + currentState.id + "|" + selectedCards.join(";"))
+                    }
+                }
+                
+            }
+
+            function IsAsker() {
+                return currentState.currentAsker == me.nickname
+            }
+
+            function DisplayCurrentCards() {
+                question.innerHTML = FormatCard(currentState.currentQuestion, false, false, false)
+                if(!IsAsker()) {
+                    var c = ""
+                    currentCards.forEach(x => {
+                        c += FormatCard(x, true, false, true)
+                    })
+                    cards.innerHTML =  ` <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px;">
+                            ${c}
+                        </div>`
+                } else {
+                    cards.innerHTML = ""
+                }
+            }
+
+            var ws = new WebSocket(location.protocol.replace("http", "ws") + "//" + window.location.host)
+
+            function Send(msg) {
+                ws.send(localStorage.token + "|" + msg)
+            }
+
+            ws.onopen = () => {
+                Send("join|" + params.get("id"))
+            }
+
+            ws.onmessage = (e) => {
+                turn = false
+                canVote = false
+                currentState = JSON.parse(e.data)
+                cardsAgainst.innerHTML = "Cards against " + currentState.currentSet
+                if(currentState.selections.length == currentState.users.length - 1) AllUsersHaveSelected()
+                if(currentState.currentAsker != lastAsker || currentState.currentQuestion.content != lastQuestion) {
+                    OnNewRound()
+                }
+                lastAsker = currentState.currentAsker
+                lastQuestion = currentState.currentQuestion.content
+
+                var users = ""
+                currentState.users.forEach(x => {
+                    users += `<tr><td>${x.nickname}</td><td>${x.points}</td></tr>`
+                })
+                points.innerHTML = `
+                    <tr><th>User</th><th>Points</th></tr>
+                    ${users}
+                `
+            }
+        </script>
+    </body>
+</html>function  FormatCardSet(set) {
+    return `<div style="border-radius: 5px; background-color: #222222BB; padding: 10px; text-align: left;">
+                <h3 style="margin-bottom: 0px; margin-top: 0;">${set.name}</h3>
+                <div style="margin-top: 0; margin-left: 20px;">by ${set.editors.map(x => x.nickname).join(", ")}</div>
+                <div style="margin-top: 10px; font-size: 1.2em;">${set.description.replace(/\\n/g, "<br>")}</div>
+                <div style="margin-top: 10px; font-size: 1.2em;">${set.black.length} Questions, ${set.white.length} answers</div>
+                <input onclick="SelectSet('${set.name}')" type="button" value="Select">
+            </div>`
+}
+
+function FormatCard(card, isWhite = false, addRemoveButton = true, showButton = true, org = undefined, label = "Select") {
+    if(!org) org = card
+    return `<div style="position: relative;">
+                <div class="card" style="background-color: #${isWhite ? 'FFFFFF' : '000000'}; color: #${isWhite ? '000000' : 'FFFFFF'};">
+                        
+                    <div style="margin-top: 10px; font-size: 1.2em;">${card.content.replace(/\\n/g, "<br>")}</div>
+                    ${addRemoveButton ? `<input type="button" value="Remove" onclick='Remove${isWhite ? "White" : "Black" }(${JSON.stringify(card)})'>` : ``}
+                    ${!addRemoveButton && showButton ? `<input type="button" value="${label}" onclick='Select(${JSON.stringify(org)})'>` : ``}
+                </div>
+            </div>`
+}
+
+function FormatEditor(editor) {
+    return `<div style="border-radius: 5px; background-color: #000000; padding: 10px; text-align: left; color: #00000;">
+                <div style="margin-top: 10px; font-size: 1.2em;">${editor.nickname}</div>
+                <input type="button" value="Remove" onclick="RemoveEditor('${editor.nickname}')">
+            </div>`
+}
+
+function IsLoggedIn() {
+    if(localStorage.token) return true
+    return false
+}
+
+function GetUserInfo() {
+    return jfetch("/api/v1/me")
+}
+
+function TextBoxError(id, text) {
+    ChangeTextBoxProperty(id, "var(--red)", text)
+}
+
+function TextBoxText(id, text) {
+    ChangeTextBoxProperty(id, "var(--highlightedColor)", text)
+}
+
+function TextBoxGood(id, text) {
+    ChangeTextBoxProperty(id, "var(--textColor)", text)
+}
+
+function HideTextBox(id) {
+    document.getElementById(id).style.visibility = "hidden"
+}
+
+function ChangeTextBoxProperty(id, color, innerHtml) {
+    var text = document.getElementById(id)
+    text.style.visibility = "visible"
+    text.style.border = color + " 1px solid"
+    text.innerHTML = innerHtml
+}
+
+function tfetch(url, method = "GET", body = "") {
+    return ifetch(url, false, method, body)
+}
+
+function jfetch(url, method = "GET", body = "") {
+    return ifetch(url, true, method, body)
+}
+
+function ifetch(url, asjson = true, method = "GET", body = "") {
+    return new Promise((resolve, reject) => {
+        if(method == "GET" || method == "HEAD") {
+            fetch(url, {
+                method: method,
+                headers: {
+                    "token": localStorage.token
+                }
+            }).then(res => {
+                res.text().then(res => {
+                    if(asjson) {
+                        try {
+                            resolve(JSON.parse(res))
+                        } catch(e) {
+                            reject(e)
+                        }
+                    } else {
+                        resolve(res)
+                    }
+                })
+            })
+        } else {
+            fetch(url, {
+                method: method,
+                body: body,
+                headers: {
+                    "token": localStorage.token
+                }
+            }).then(res => {
+                res.text().then(res => {
+                    if(asjson) {
+                        try {
+                            resolve(JSON.parse(res))
+                        } catch(e) {
+                            reject(e)
+                        }
+                    } else {
+                        resolve(res)
+                    }
+                })
+            })
+        }
+    })
+}html {
+    background-color: var(--bgColor);
+    font-family: 'Open Sans';
+    font-size: 1rem;
+    color: var(--textColor);
+}
+
+:root {
+    --red: #eb0303;
+    --redDark: #ab0d0e;
+    --textColor: #EEEEEE;
+    --bgColor: #181A1B;
+    --dateColor: #758085;
+    --hightlightColor: #202324;
+    --hightlightColorIntense: #424546;
+    --hoverColor: #2B2F31;
+    --selectedColor: #35393B;
+    --highlightedColor: #63FAC3;
+    --brightHoverColor: #4aaf8b;
+    --brightHighlightColor: #397e66;
+    font-size: 18px!important;
+}
+
+.card {
+    border-radius: 5px; 
+    padding: 10px;
+    text-align: left;
+    backface-visibility: hidden;
+    transition: all .5s ease-in-out;
+}
+
+.front {
+    animation: frontRotate .5s ease-in-out;
+    transform: rotateY(0deg);
+}
+
+.frontr{
+    transform: rotateY(180deg);
+}
+
+@keyframes frontRotate {
+    100% {
+        transform: rotateY(0deg);
+    }
+    0% {
+        transform: rotateY(180deg);
+    }
+}
+@keyframes backRotate {
+    100% {
+        transform: rotateY(180deg);
+    }
+    0% {
+        transform: rotateY(360deg);
+    }
+}
+
+.backr {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform: rotateY(360deg);
+}
+
+.back {
+    position: absolute;
+    top: 0;
+    left: 0;
+    
+    animation: backRotate .5s ease-in-out;
+}
+
+
+
+.contentInput {
+    width: 100%;
+}
+
+.button {
+    padding: 10px;
+    border-radius: 5px;
+    background-color: var(--hightlightColorIntense);
+    text-decoration: none;
+    border: var(--brightHighlightColor) 2px solid;
+    color: var(--brightHighlightColor);
+    transition: .2s ease-in-out;
+}
+
+.button:hover {
+    border: var(--highlightedColor) 2px solid;
+    color: var(--highlightedColor);
+}
+
+input {
+    color: var(--textColor);
+    transition: ease-in-out 0.2s;
+    border-radius: 5px;
+    border: 1px solid var(--textColor);
+    background-color: var(--bgColor);
+    padding: 5px;
+    outline-width: 0;
+    border: 1px solid var(--brightHoverColor);
+}
+
+input:hover {
+    border: 1px solid var(--highlightedColor);
+    
+}
+
+input[type=button]:hover {
+    color: var(--highlightedColor);
+}
+
+input:focus {
+    border: 1px solid var(--highlightedColor);
+    background-color: var(--bgColor);
+}
+
+input[type=button] {
+    color: var(--brightHoverColor);
+    height: fit-content;
+    width: fit-content;
+    font-size: .8em;
+}
