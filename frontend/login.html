@@ -1,0 +1,49 @@
+<html>
+    <head>
+        {meta}
+    </head>
+    <body>
+        <h2>Login/Register</h2>
+        <input type="text" id="username" placeholder="username">
+        <input type="password" id="password" placeholder="password">
+        <br>
+        <input type="button" value="Register" onclick="Register()">
+        <input type="button" value="Login" onclick="Login()">
+        <div class="textbox" id="status"></div>
+        <script src="script.js"></script>
+        <script>
+            const username = document.getElementById("username");
+            const password = document.getElementById("password");
+
+            function Register() {
+                jfetch("/api/v1/createuser", "POST", JSON.stringify({
+                    username: username.value,
+                    password: password.value
+                })).then(res => {
+                    if(res.success) {
+                        localStorage.token = res.token;
+                        location = "/create"
+                        TextBoxGood("status", res.message)
+                    } else {
+                        TextBoxError("status", res.message)
+                    }
+                })
+            }
+
+            function Login() {
+                jfetch("/api/v1/login", "POST", JSON.stringify({
+                    username: username.value,
+                    password: password.value
+                })).then(res => {
+                    if(res.success) {
+                        localStorage.token = res.token;
+                        location = "/create"
+                        TextBoxGood("status", res.message)
+                    } else {
+                        TextBoxError("status", res.message)
+                    }
+                })
+            }
+        </script>
+    </body>
+</html>

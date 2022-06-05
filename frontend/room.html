@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        {meta}
+        <title>Cards against ...</title>
+    </head>
+    <body>
+        <h2 id="cardsAgainst"></h2>
+        <table id="points"></table>
+        <div id="state"></div>
+        <div id="question"></div>
+        <div id="cards"></div>
+        <input type="button" value="Next Round" onclick="Start()">
+        <script src="/script.js"></script>
+        <script>
+            var currentState = {}
+            const cardsAgainst = document.getElementById("cardsAgainst")
+            const cards = document.getElementById("cards")
+            const question = document.getElementById("question")
+            const state = document.getElementById("state")
+            const points = document.getElementById("points")
+            const params = new URLSearchParams(window.location.search)
+            var currentCards = []
+            var me = {}
+            var selectedCards = []
+            var lastQuestion = ""
+            var lastAsker = ""
+            var turn = false
+            var voted = false
+            var overallPoints = 0
+            var canVote = false
+
+            setInterval(() => {
+                Send("heartbeat|" + currentState.id)
+            }, 5000)
+
+            GetUserInfo().then(res => {
+                me = res
+            })
+
+            function OnNewRound() {
+                state.style.visibility = "hidden"
+                console.log("new round")
+                // Refill cards
+                currentState.newCards.forEach(x => {
+                    if(x.username == me.nickname) {
+                        x.cards.forEach(x => {
+                            if(currentCards.length < 10 && !currentCards.map(x => x.content).includes(x)) currentCards.push(x)
+                        })
+                    }
+                })
+                voted = false
+                // Reset selected cards
+                selectedCards = []
+
+                DisplayCurrentCards()
+            }
+
+            function Start() {
+                if(currentState.currentAsker == "" || IsAsker()) {
+                    if(!voted && IsAsker() && currentState.users.length > 1 && canVote) {
+                        alert("You must vote first")
+                    } else {
+                        Send("next|" + currentState.id)
+                    }
+                } else {
+                    alert("Only the asker can start the next round. Beg them!")
+                }
+            }
+
+            // All users submitted card selection
+            function AllUsersHaveSelected() {
+                turn = true
+                state.innerHTML = "Asker will turn the cards"
+                cards.innerHTML = ""
+                currentState.selections.forEach(x => {
+                    var c = ""
+                    x.cards.forEach(x => {
+                        var org = {content: x.content, visible: x.visible}
+                        if(!x.visible) x.content = "answer"
+                        c += FormatCard(x, true, false, true, org, "Flip card")
+                    })
+                    canVote = true
+                    cards.innerHTML += `${voted ||currentState.users.map(x => x.points).reduce((a, b) => a + b, 0) != overallPoints ? `<h4>${x.username}</h4>` : (IsAsker() ? `<input type="button" value="This is the best" onclick="Vote('${x.username}')">` : "")} 
+                    <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px; margin-bottom: 30px;">
+                            ${c}
+                        </div>`
+                        overallPoints = currentState.users.map(x => x.points).reduce((a, b) => a + b, 0)
+                })
+            }
+
+            function Vote(username) {
+                if(!IsAsker() || voted) return
+                voted = true
+                Send("vote|" + currentState.id + "|" + username)
+                setTimeout(() => {
+                    NextRound()
+                }, 5000)
+            }
+
+            function Select(card) {
+                if(turn) {
+                    // turn card
+                    if(IsAsker() && !card.visible) Send("turn|" + currentState.id + "|" + card.content)
+                } else {
+                    // select card
+                    selectedCards.push(card.content)
+                    currentCards.splice(currentCards.map(x => x.content).indexOf(card.content), 1)
+                    DisplayCurrentCards()
+                    if(selectedCards.length == currentState.currentQuestion.selectionCount) {
+                        console.log("sent selected cards to server")
+                        state.style.visibility = "visible"
+                        state.innerHTML = "Waiting for all users to submit their selections"
+                        Send("select|" + currentState.id + "|" + selectedCards.join(";"))
+                    }
+                }
+                
+            }
+
+            function IsAsker() {
+                return currentState.currentAsker == me.nickname
+            }
+
+            function DisplayCurrentCards() {
+                question.innerHTML = FormatCard(currentState.currentQuestion, false, false, false)
+                if(!IsAsker()) {
+                    var c = ""
+                    currentCards.forEach(x => {
+                        c += FormatCard(x, true, false, true)
+                    })
+                    cards.innerHTML =  ` <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px;">
+                            ${c}
+                        </div>`
+                } else {
+                    cards.innerHTML = ""
+                }
+            }
+
+            var ws = new WebSocket(location.protocol.replace("http", "ws") + "//" + window.location.host)
+
+            function Send(msg) {
+                ws.send(localStorage.token + "|" + msg)
+            }
+
+            ws.onopen = () => {
+                Send("join|" + params.get("id"))
+            }
+
+            ws.onmessage = (e) => {
+                turn = false
+                canVote = false
+                currentState = JSON.parse(e.data)
+                cardsAgainst.innerHTML = "Cards against " + currentState.currentSet
+                if(currentState.selections.length == currentState.users.length - 1) AllUsersHaveSelected()
+                if(currentState.currentAsker != lastAsker || currentState.currentQuestion.content != lastQuestion) {
+                    OnNewRound()
+                }
+                lastAsker = currentState.currentAsker
+                lastQuestion = currentState.currentQuestion.content
+
+                var users = ""
+                currentState.users.forEach(x => {
+                    users += `<tr><td>${x.nickname}</td><td>${x.points}</td></tr>`
+                })
+                points.innerHTML = `
+                    <tr><th>User</th><th>Points</th></tr>
+                    ${users}
+                `
+            }
+        </script>
+    </body>
+</html>

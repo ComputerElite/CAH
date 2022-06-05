@@ -1,0 +1,124 @@
+html {
+    background-color: var(--bgColor);
+    font-family: 'Open Sans';
+    font-size: 1rem;
+    color: var(--textColor);
+}
+
+:root {
+    --red: #eb0303;
+    --redDark: #ab0d0e;
+    --textColor: #EEEEEE;
+    --bgColor: #181A1B;
+    --dateColor: #758085;
+    --hightlightColor: #202324;
+    --hightlightColorIntense: #424546;
+    --hoverColor: #2B2F31;
+    --selectedColor: #35393B;
+    --highlightedColor: #63FAC3;
+    --brightHoverColor: #4aaf8b;
+    --brightHighlightColor: #397e66;
+    font-size: 18px!important;
+}
+
+.card {
+    border-radius: 5px; 
+    padding: 10px;
+    text-align: left;
+    backface-visibility: hidden;
+    transition: all .5s ease-in-out;
+}
+
+.front {
+    animation: frontRotate .5s ease-in-out;
+    transform: rotateY(0deg);
+}
+
+.frontr{
+    transform: rotateY(180deg);
+}
+
+@keyframes frontRotate {
+    100% {
+        transform: rotateY(0deg);
+    }
+    0% {
+        transform: rotateY(180deg);
+    }
+}
+@keyframes backRotate {
+    100% {
+        transform: rotateY(180deg);
+    }
+    0% {
+        transform: rotateY(360deg);
+    }
+}
+
+.backr {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform: rotateY(360deg);
+}
+
+.back {
+    position: absolute;
+    top: 0;
+    left: 0;
+    
+    animation: backRotate .5s ease-in-out;
+}
+
+
+
+.contentInput {
+    width: 100%;
+}
+
+.button {
+    padding: 10px;
+    border-radius: 5px;
+    background-color: var(--hightlightColorIntense);
+    text-decoration: none;
+    border: var(--brightHighlightColor) 2px solid;
+    color: var(--brightHighlightColor);
+    transition: .2s ease-in-out;
+}
+
+.button:hover {
+    border: var(--highlightedColor) 2px solid;
+    color: var(--highlightedColor);
+}
+
+input {
+    color: var(--textColor);
+    transition: ease-in-out 0.2s;
+    border-radius: 5px;
+    border: 1px solid var(--textColor);
+    background-color: var(--bgColor);
+    padding: 5px;
+    outline-width: 0;
+    border: 1px solid var(--brightHoverColor);
+}
+
+input:hover {
+    border: 1px solid var(--highlightedColor);
+    
+}
+
+input[type=button]:hover {
+    color: var(--highlightedColor);
+}
+
+input:focus {
+    border: 1px solid var(--highlightedColor);
+    background-color: var(--bgColor);
+}
+
+input[type=button] {
+    color: var(--brightHoverColor);
+    height: fit-content;
+    width: fit-content;
+    font-size: .8em;
+}

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        {meta}
+        <title>Create card sets - Cards against ...</title>
+    </head>
+    <body>
+        <h1>Create card sets</h1>
+        <h2>Existing sets made by you</h2>
+        <div id="sets">
+
+        </div>
+        <input type="text" id="name" placeholder="name">
+        <input type="text" id="description" placeholder="description">
+        <input type="button" onclick="CreateSet()" value="Create Set">
+        <h2>Selected Set</h2>
+        <h4>Editors</h4>
+        <input type="text" class="contentInput" id="editor" placeholder="editor">
+        <input type="button" onclick="AddEditor()" value="Add Editor">
+        <div id="editors">
+
+        </div>
+        <h4>Questions</h4>
+        <input type="text" class="contentInput" id="question" placeholder="question" onkeydown="if(event.key == 'Enter') AddQuestion()">
+        <input type="button" onclick="AddQuestion()" value="Add Question">
+        <div id="questions">
+
+        </div>
+        <h4>Answers</h4>
+        <input type="text" class="contentInput" id="answer" placeholder="answer" onkeydown="if(event.key == 'Enter') AddAnswer()">
+        <input type="button" onclick="AddAnswer()" value="Add Answer">
+        <div id="answers">
+
+        </div>
+        <script src="/script.js"></script>
+        <script>
+            if(!IsLoggedIn()) location = "/login"
+            var me = {}
+            var cardSets = []
+            var currentSet = {}
+            const sets = document.getElementById("sets")
+            const editors = document.getElementById("editors")
+            FetchSets()
+
+            function CreateSet() {
+                jfetch("/api/v1/createset", "POST", JSON.stringify({
+                    name: document.getElementById("name").value,
+                    description: document.getElementById("description").value,
+                    editors: [
+                    ],
+                    white: [],
+                    black: []
+                })).then(res => {
+                    FetchSets();
+                })
+            }
+
+            function FetchSets() {
+                jfetch("/api/v1/mysets").then(res => {
+                    cardSets = res
+                    ShowSets()
+                })
+            }
+            
+            function AddQuestion() {
+                UpdateSet({black: [{
+                    content: document.getElementById("question").value
+                }], name: currentSet.name})
+                document.getElementById("question").value = ""
+            }
+
+            function AddAnswer() {
+                UpdateSet({white: [{
+                    content: document.getElementById("answer").value
+                }], name: currentSet.name})
+                document.getElementById("answer").value = ""
+            }
+
+            function RemoveBlack(card) {
+                UpdateSetRemove({black: [card], name: currentSet.name})
+            }
+
+            function RemoveWhite(card) {
+                UpdateSetRemove({white: [card], name: currentSet.name})
+            }
+
+            function AddEditor() {
+                currentSet.editors.push({nickname: document.getElementById("editor").value})
+                UpdateSetEditors()
+            }
+
+            function RemoveEditor(nickname) {
+                currentSet.editors = currentSet.editors.filter(e => e.nickname != nickname)
+                UpdateSetEditors()
+            }
+
+            function UpdateSetRemove(set) {
+                jfetch("/api/v1/removefromset", "POST", JSON.stringify(set)).then(res => {
+                    currentSet = res
+                    DisplayCardsOfSelectedSet()
+                })
+            }
+
+            function UpdateSetEditors() {
+                jfetch("/api/v1/updateeditors", "POST", JSON.stringify(currentSet)).then(res => {
+                    currentSet = res
+                    DisplayCardsOfSelectedSet()
+                })
+            }
+            
+            function UpdateSet(set) {
+                jfetch("/api/v1/addtoset", "POST", JSON.stringify(set)).then(res => {
+                    currentSet = res
+                    DisplayCardsOfSelectedSet()
+                })
+            }
+
+            function SelectSet(name) {
+                for(var i = 0; i < cardSets.length; i++) {
+                    if(cardSets[i].name == name) {
+                        currentSet = cardSets[i]
+                        break
+                    }
+                }
+                DisplayCardsOfSelectedSet()
+            }
+
+            function DisplayCardsOfSelectedSet() {
+                var s = ""
+                currentSet.black.forEach(x => {
+                    s += FormatCard(x, false)
+                })
+                questions.innerHTML = ` <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px;">
+                            ${s}
+                        </div>`
+
+                s = ""
+                currentSet.white.forEach(x => {
+                    s += FormatCard(x, true)
+                })
+                answers.innerHTML = ` <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px;">
+                            ${s}
+                        </div>`
+                s = ""
+                currentSet.editors.forEach(x => {
+                    s += FormatEditor(x)
+                })
+                editors.innerHTML = ` <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px;">
+                            ${s}
+                        </div>`
+            }
+
+            GetUserInfo().then(res => {
+                me = res
+            })
+
+            function ShowSets() {
+                var s = ""
+                cardSets.forEach(x => {
+                    s += FormatCardSet(x)
+                })
+                sets.innerHTML = ` <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px;">
+                            ${s}
+                        </div>`
+            }
+        </script>
+    </body>
+</html>
