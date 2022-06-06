@@ -143,9 +143,12 @@ namespace Cards_against_humanity
         public static int GetAmountOfRequiredAnswerd(string content)
         {
             int length = 0;
-            foreach (string s in content.Replace("\\n", " ").Split(new char[] { ' ', '#' }))
+            for(int i = 0; i < content.Length; i++)
             {
-                if (s.Contains("_") && s.Trim(new char[] { '_', ':' }) == "") length++;
+                if(content[i] == '_' && (content[i + 1] != '_' || content.Length <= i + 1))
+                {
+                    length++;
+                }
             }
             return length <= 0 ? 1 : length;
         }
