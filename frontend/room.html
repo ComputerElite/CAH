@@ -54,7 +54,7 @@
                 currentState.newCards.forEach(x => {
                     if(x.username == me.nickname) {
                         x.cards.forEach(x => {
-                            if(currentCards.length < 10 && !currentCards.map(x => x.content).includes(x)) currentCards.push(x)
+                            if(currentCards.length < 10 && !currentCards.map(x => x.content).includes(x.content)) currentCards.push(x)
                         })
                     }
                 })
@@ -165,6 +165,10 @@
                 Send("join|" + params.get("id"))
             }
 
+            function HasUserSelected(nickname) {
+                return currentState.selections.find(x => x.username == nickname)
+            }
+
             ws.onmessage = (e) => {
                 turn = false
                 canVote = false
@@ -179,10 +183,10 @@
 
                 var users = ""
                 currentState.users.forEach(x => {
-                    users += `<tr><td>${x.nickname}</td><td>${x.points}</td></tr>`
+                    users += `<tr><td>${x.nickname}</td><td>${x.nickname == currentState.currentAsker ? "dealer" : (HasUserSelected(x.nickname) ? "selected" : "not selected")}</td><td>${x.points}</td></tr>`
                 })
                 points.innerHTML = `
-                    <tr><th>User</th><th>Points</th></tr>
+                    <tr><th>User</th><th>State</th><th>Points</th></tr>
                     ${users}
                 `
             }
