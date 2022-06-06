@@ -89,14 +89,38 @@ namespace Cards_against_humanity
             return GetSetsOfUser(u.nickname);
         }
 
-        public static List<CardSet> GetAllSets()
+        public static List<CardSet> GetAllSets(User u)
         {
-            return setsCollection.Find(x => true).ToList();
+            return setsCollection.Find(new BsonDocument
+            {
+                {
+                    "$or", new BsonArray
+                    {
+                        new BsonDocument
+                        {
+                            {
+                                "isPrivate", false
+                            }
+                        },
+                        new BsonDocument("editors", new BsonDocument("$elemMatch", new BsonDocument("nickname", u.nickname))),
+                        new BsonDocument("players", new BsonDocument("$elemMatch", new BsonDocument("nickname", u.nickname)))
+                    }
+                }
+            }).ToList();
         }
 
         public static void UpdateSet(CardSet set)
         {
             setsCollection.ReplaceOne(x => x.name == set.name, set);
+        }
+
+        public static CardSet GetCardSet(string name, User u)
+        {
+            CardSet set = setsCollection.Find(x => x.name.ToLower() == name.ToLower()).FirstOrDefault();
+            if (set == null) return new CardSet();
+            if(!set.isPrivate) return set;
+            if (!set.players.Where(x => x.nickname == u.nickname).Any() && !set.editors.Where(x => x.nickname == u.nickname).Any()) return new CardSet();
+            return set;
         }
 
         public static CardSet GetCardSet(string name)

@@ -1,4 +1,5 @@
-﻿using ComputerUtils.RandomExtensions;
+﻿using ComputerUtils.Logging;
+using ComputerUtils.RandomExtensions;
 using ComputerUtils.Updating;
 using ComputerUtils.Webserver;
 using System;
@@ -99,7 +100,13 @@ namespace Cards_against_humanity
             // Sets
             server.AddRoute("GET", "/api/v1/allsets", new Func<ServerRequest, bool>(request =>
             {
-                request.SendString(JsonSerializer.Serialize(MongoDBInteractor.GetAllSets()));
+                User u = MongoDBInteractor.GetUserByToken(GetToken(request));
+                if(u == null)
+                {
+                    request.Send403();
+                    return true;
+                }
+                request.SendString(JsonSerializer.Serialize(MongoDBInteractor.GetAllSets(u)));
                 return true;
             }));
             server.AddRoute("POST", "/api/v1/creategame", new Func<ServerRequest, bool>(request =>
@@ -123,6 +130,7 @@ namespace Cards_against_humanity
                 CardSet set = JsonSerializer.Deserialize<CardSet>(request.bodyString);
                 set.editors = new List<User>();
                 set.editors.Add(u);
+                set.owner = u;
                 MongoDBInteractor.AddSet(set);
                 request.SendString("created");
                 return true;
@@ -131,18 +139,20 @@ namespace Cards_against_humanity
             {
                 User u = MongoDBInteractor.GetUserByToken(GetToken(request));
                 CardSet set = JsonSerializer.Deserialize<CardSet>(request.bodyString);
-                CardSet toUpdate = MongoDBInteractor.GetCardSet(set.name);
+                CardSet toUpdate = MongoDBInteractor.GetCardSet(set.name, u);
                 if (toUpdate == null)
                 {
                     request.SendString("set does not exist", "text/plain", 404);
                     return true;
                 }
-                if (!toUpdate.editors.Where(x => x.nickname == u.nickname).Any())
+                if (toUpdate.owner.nickname != u.nickname)
                 {
                     request.Send403();
                     return true;
                 }
                 toUpdate.editors = set.editors;
+                toUpdate.players = set.players;
+                toUpdate.isPrivate = set.isPrivate;
                 MongoDBInteractor.UpdateSet(toUpdate);
                 request.SendString(JsonSerializer.Serialize(toUpdate));
                 return true;
@@ -151,7 +161,7 @@ namespace Cards_against_humanity
             {
                 User u = MongoDBInteractor.GetUserByToken(GetToken(request));
                 CardSet set = JsonSerializer.Deserialize<CardSet>(request.bodyString);
-                CardSet toUpdate = MongoDBInteractor.GetCardSet(set.name);
+                CardSet toUpdate = MongoDBInteractor.GetCardSet(set.name, u);
                 if (toUpdate == null)
                 {
                     request.SendString("set does not exist", "text/plain", 404);
@@ -178,7 +188,7 @@ namespace Cards_against_humanity
             {
                 User u = MongoDBInteractor.GetUserByToken(GetToken(request));
                 CardSet set = JsonSerializer.Deserialize<CardSet>(request.bodyString);
-                CardSet toUpdate = MongoDBInteractor.GetCardSet(set.name);
+                CardSet toUpdate = MongoDBInteractor.GetCardSet(set.name, u);
                 if(toUpdate == null)
                 {
                     request.SendString("set does not exist", "text/plain", 404);
@@ -208,7 +218,14 @@ namespace Cards_against_humanity
             }));
             server.AddRoute("GET", "/api/v1/set/", new Func<ServerRequest, bool>(request =>
             {
-                request.SendString(JsonSerializer.Serialize(MongoDBInteractor.GetCardSet(request.pathDiff)));
+                User u = MongoDBInteractor.GetUserByToken(GetToken(request));
+                if (u == null)
+                {
+                    request.Send403();
+                    return true;
+                }
+                Logger.Log(request.pathDiff);
+                request.SendString(JsonSerializer.Serialize(MongoDBInteractor.GetCardSet(request.pathDiff, u)));
                 return true;
             }), true);
 

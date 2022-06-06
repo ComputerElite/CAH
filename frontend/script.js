@@ -20,10 +20,10 @@ function FormatCard(card, isWhite = false, addRemoveButton = true, showButton = 
             </div>`
 }
 
-function FormatEditor(editor) {
+function FormatEditor(editor, method = "Editor") {
     return `<div style="border-radius: 5px; background-color: #000000; padding: 10px; text-align: left; color: #00000;">
                 <div style="margin-top: 10px; font-size: 1.2em;">${editor.nickname}</div>
-                <input type="button" value="Remove" onclick="RemoveEditor('${editor.nickname}')">
+                <input type="button" value="Remove" onclick="Remove${method}('${editor.nickname}')">
             </div>`
 }
 

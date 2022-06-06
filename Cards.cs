@@ -21,6 +21,9 @@ namespace Cards_against_humanity
     public class CardSetMeta
     {
         public List<User> editors { get; set; } = new List<User>();
+        public List<User> players { get; set; } = new List<User>();
+        public User owner { get; set; } = new User();
+        public bool isPrivate { get; set; } = false;
         public string name { get; set; } = "";
         public string description { get; set; } = "";
     }

@@ -20,6 +20,14 @@
         <div id="editors">
 
         </div>
+        <h4>Players</h4>
+        <input type="checkbox" id="isPrivate" onclick="UpdateIsPrivate()">
+        <label for="isPrivate">Is Private (only players and editors can see the content of the set and play with it)</label>
+        <input type="text" class="contentInput" id="player" placeholder="player">
+        <input type="button" onclick="AddPlayer()" value="Add Player">
+        <div id="players">
+
+        </div>
         <h4>Questions</h4>
         <input type="text" class="contentInput" id="question" placeholder="question" onkeydown="if(event.key == 'Enter') AddQuestion()">
         <input type="button" onclick="AddQuestion()" value="Add Question">
@@ -40,7 +48,23 @@
             var currentSet = {}
             const sets = document.getElementById("sets")
             const editors = document.getElementById("editors")
+            const players = document.getElementById("players")
+            const isPrivate = document.getElementById("isPrivate")
             FetchSets()
+
+            setInterval(() => {
+                FetchSets()
+            }, 2500)
+            setInterval(() => {
+                FetchSet()
+            }, 1000)
+
+            function FetchSet() {
+                jfetch("/api/v1/set/" + currentSet.name, "GET").then(res => {
+                    currentSet = res
+                    DisplayCardsOfSelectedSet()
+                })
+            }
 
             function CreateSet() {
                 jfetch("/api/v1/createset", "POST", JSON.stringify({
@@ -89,8 +113,23 @@
                 UpdateSetEditors()
             }
 
+            function AddPlayer() {
+                currentSet.players.push({nickname: document.getElementById("player").value})
+                UpdateSetEditors()
+            }
+
+            function UpdateIsPrivate() {
+                currentSet.isPrivate = isPrivate.checked
+                UpdateSetEditors()
+            }
+
             function RemoveEditor(nickname) {
                 currentSet.editors = currentSet.editors.filter(e => e.nickname != nickname)
+                UpdateSetEditors()
+            }
+
+            function RemovePlayer(nickname) {
+                currentSet.players = currentSet.players.filter(e => e.nickname != nickname)
                 UpdateSetEditors()
             }
 
@@ -148,6 +187,15 @@
                 editors.innerHTML = ` <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px;">
                             ${s}
                         </div>`
+                s = ""
+                currentSet.players.forEach(x => {
+                    s += FormatEditor(x, "Player")
+                })
+                players.innerHTML = ` <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px;">
+                            ${s}
+                        </div>`
+                isPrivate.checked = currentSet.isPrivate
+                
             }
 
             GetUserInfo().then(res => {
