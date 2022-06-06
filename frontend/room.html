@@ -31,6 +31,8 @@
             var canVote = false
             var winner = ""
             var lastPoints = []
+            var allSelected = false
+            var nextRoundInterval = 0
 
             setInterval(() => {
                 Send("heartbeat|" + currentState.id)
@@ -41,8 +43,13 @@
             })
 
             function OnNewRound() {
+                clearInterval(nextRoundInterval)
                 state.style.visibility = "hidden"
                 console.log("new round")
+                // Remove selected cards
+                selectedCards.forEach(c => {
+                    currentCards = currentCards.filter(x => x.content == c)
+                })
                 // Refill cards
                 currentState.newCards.forEach(x => {
                     if(x.username == me.nickname) {
@@ -51,6 +58,7 @@
                         })
                     }
                 })
+                allSelected = false
                 voted = false
                 winner = ""
                 // Reset selected cards
@@ -87,11 +95,11 @@
                     s.cards.forEach(x => {
                         var org = {content: x.content, visible: x.visible}
                         if(!x.visible) x.content = "answer"
-                        c += FormatCard(x, true, false, true, org, "Flip card", s.username == winner)
+                        c += FormatCard(x, true, false, IsAsker() && !x.visible, org, "Flip card", s.username == winner)
                     })
                     canVote = true
-                    if(!IsAsker()) voted = currentState.users.map(x => x.points).reduce((a, b) => a + b, 0) != overallPoints
-                    cards.innerHTML += `${voted ? `<h4>${s.username}</h4>` : (IsAsker() ? `<input type="button" value="This is the best" onclick="Vote('${s.username}')">` : "")} 
+                    if(!IsAsker() && !voted) voted = currentState.users.map(x => x.points).reduce((a, b) => a + b, 0) != overallPoints
+                    cards.innerHTML += `${voted ? `<h4>${s.username}</h4>` : (IsAsker() ? `<h4>...</h4><input type="button" value="This is the best" onclick="Vote('${s.username}')">` : "<h4>...</h4>")} 
                     <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px; margin-bottom: 30px;">
                             ${c}
                         </div>`
@@ -103,7 +111,7 @@
                 if(!IsAsker() || voted) return
                 voted = true
                 Send("vote|" + currentState.id + "|" + username)
-                setTimeout(() => {
+                nextRoundInterval = setTimeout(() => {
                     Start()
                 }, 5000)
             }
@@ -114,15 +122,16 @@
                     if(IsAsker() && !card.visible) Send("turn|" + currentState.id + "|" + card.content)
                 } else {
                     // select card
+                    if(selectedCards.length >= currentState.currentQuestion.selectionCount) return
                     selectedCards.push(card.content)
-                    currentCards.splice(currentCards.map(x => x.content).indexOf(card.content), 1)
-                    DisplayCurrentCards()
                     if(selectedCards.length == currentState.currentQuestion.selectionCount) {
                         console.log("sent selected cards to server")
+                        allSelected = true
                         state.style.visibility = "visible"
                         state.innerHTML = "Waiting for all users to submit their selections"
                         Send("select|" + currentState.id + "|" + selectedCards.join(";"))
                     }
+                    DisplayCurrentCards()
                 }
                 
             }
@@ -136,13 +145,13 @@
                 if(!IsAsker()) {
                     var c = ""
                     currentCards.forEach(x => {
-                        c += FormatCard(x, true, false, true)
+                        c += FormatCard(x, true, false, true, undefined, "Select", selectedCards.includes(x.content), allSelected)
                     })
                     cards.innerHTML =  ` <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px;">
                             ${c}
                         </div>`
                 } else {
-                    cards.innerHTML = ""
+                    cards.innerHTML = "Please wait for everyone to make their selection of cards. Afterwards choose the one you like the most."
                 }
             }
 

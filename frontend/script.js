@@ -8,10 +8,10 @@ function  FormatCardSet(set) {
             </div>`
 }
 
-function FormatCard(card, isWhite = false, addRemoveButton = true, showButton = true, org = undefined, label = "Select", winner = false) {
+function FormatCard(card, isWhite = false, addRemoveButton = true, showButton = true, org = undefined, label = "Select", winner = false, allSelected = false) {
     if(!org) org = card
     return `<div style="position: relative;">
-                <div class="card" style="background-color: #${isWhite ? (winner ? 'FFFF00' : 'FFFFFF') : '000000'}; color: #${isWhite ? '000000' : 'FFFFFF'};">
+                <div class="card" style="background-color: #${isWhite ? (winner ? 'FFFF00' : (allSelected ? '999999' : 'FFFFFF')) : '000000'}; color: #${isWhite ? '000000' : 'FFFFFF'};">
                         
                     <div style="margin-top: 10px; font-size: 1.2em;">${card.content.replace(/\\n/g, "<br>")}</div>
                     ${addRemoveButton ? `<input type="button" value="Remove" onclick='Remove${isWhite ? "White" : "Black" }(${JSON.stringify(card)})'>` : ``}

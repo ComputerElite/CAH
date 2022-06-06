@@ -70,10 +70,12 @@
                 jfetch("/api/v1/createset", "POST", JSON.stringify({
                     name: document.getElementById("name").value,
                     description: document.getElementById("description").value,
-                    editors: [
-                    ],
+                    editors: [],
+                    players: [],
+                    owner: {},
                     white: [],
-                    black: []
+                    black: [],
+                    isPrivate: false
                 })).then(res => {
                     FetchSets();
                 })
