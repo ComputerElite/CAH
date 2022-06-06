@@ -174,7 +174,7 @@ namespace Cards_against_humanity
 
             // select random asker
             rooms[id].currentAsker = rooms[id].users[RandomExtension.random.Next(0, rooms[id].users.Count)].nickname;
-            if(set.white.Count >= 0)
+            if(set.white.Count > 0)
             {
                 // give every user new cards to draw
                 foreach (User u in rooms[id].users)
