@@ -145,7 +145,7 @@ namespace Cards_against_humanity
             int length = 0;
             for(int i = 0; i < content.Length; i++)
             {
-                if(content[i] == '_' && (content[i + 1] != '_' || content.Length <= i + 1))
+                if(content[i] == '_' && (i + 1 >= content.Length || content[i + 1] != '_'))
                 {
                     length++;
                 }
