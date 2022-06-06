@@ -29,5 +29,7 @@ namespace Cards_against_humanity
 
         [BsonIgnore]
         public int points { get; set; } = 0;
+        [BsonIgnore]
+        public List<User> kickVotes { get; set; } = new List<User>();
     }
 }

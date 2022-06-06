@@ -48,7 +48,37 @@ namespace Cards_against_humanity
                 case "heartbeat":
                     Heartbeat(args[1]);
                     break;
+                case "kick":
+                    if (args.Count < 3) return;
+                    Kick(args[1], args[2], u);
+                    break;
             }
+        }
+
+        public static void Kick(string id, string user, User u)
+        {
+            if (!rooms.ContainsKey(id)) return;
+            for(int i = 0; i < rooms[id].users.Count; i++)
+            {
+                if(rooms[id].users[i].nickname == user)
+                {
+                    // kick this idiot. NOW. but first do checks
+                    if(!rooms[id].users[i].kickVotes.Where(x => x.nickname == u.nickname).Any())
+                    {
+                        // user didn't want to kick them before
+                        rooms[id].users[i].kickVotes.Add(u);
+                        if(rooms[id].users.Count - 1 <= rooms[id].users[i].kickVotes.Count)
+                        {
+                            // KICK THEM. FAST
+                            clients[rooms[id].users[i].nickname].request.SendString("kicked due to votekick");
+                            clients.Remove(rooms[id].users[i].nickname);
+                            rooms[id].users.RemoveAt(i);
+                            i--;
+                        }
+                    }
+                }
+            }
+            SendUpdatedRoomToAllUsers(id);
         }
 
         public static void Heartbeat(string id)
@@ -66,18 +96,6 @@ namespace Cards_against_humanity
                 }
 
                 // kicking
-                if(rooms[id].selections.Count > rooms[id].users.Count - 1 && rooms[id].currentAsker == rooms[id].users[i].nickname)
-                {
-                    // asker
-                    if(rooms[id].roundStart != DateTime.MinValue && rooms[id].roundStart + new TimeSpan(0, 0, rooms[id].selectTime + 10 + rooms[id].users.Count * rooms[id].selectTime) < now)
-                    {
-                        // kick that idiot
-                        clients[rooms[id].users[i].nickname].request.SendString("kicked due to inactivity");
-                        clients.Remove(rooms[id].users[i].nickname);
-                        rooms[id].users.RemoveAt(i);
-                        i--;
-                    }
-                }
                 if (rooms[id].roundStart != DateTime.MinValue && rooms[id].selections.Count < rooms[id].users.Count - 1 && rooms[id].currentAsker != rooms[id].users[i].nickname)
                 {
                     // normal player
@@ -202,6 +220,11 @@ namespace Cards_against_humanity
             rooms[id].currentQuestion.selectionCount = GetAmountOfRequiredAnswerd(rooms[id].currentQuestion.content);
 
             rooms[id].roundStart = DateTime.Now;
+
+            for(int i = 0; i < rooms[id].users.Count; i++)
+            {
+                rooms[id].users[i].kickVotes = new List<User>();
+            }
 
             // reset newCards
             rooms[id].newCards = new List<CardSelection>();

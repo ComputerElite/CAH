@@ -45,9 +45,6 @@
 
             setInterval(() => {
                 secondsToGo--;
-                if(secondsToGo < 0) {
-                    secondsToGo = currentState.selectTime + 10 + currentState.users.Count * currentState.selectTime
-                }
                 toGo.innerHTML = secondsToGo + " seconds left to select"
             }, 1000)
 
@@ -57,7 +54,7 @@
 
             function OnNewRound() {
                 clearInterval(nextRoundInterval)
-                secondsToGo = (Date.now() - new Date(currentState.roundStart) + currentState.selectTime * 1000) / 1000
+                secondsToGo = (new Date(currentState.roundStart) - Date.now() + currentState.selectTime * 1000) / 1000
                 state.style.visibility = "hidden"
                 console.log("new round")
                 // Remove selected cards
@@ -183,6 +180,10 @@
                 return currentState.selections.find(x => x.username == nickname)
             }
 
+            function Kick(nickname) {
+                Send("kick|" + currentState.id + "|" + nickname)
+            }
+
             ws.onmessage = (e) => {
                 turn = false
                 canVote = false
@@ -202,10 +203,10 @@
 
                 var users = ""
                 currentState.users.forEach(x => {
-                    users += `<tr><td>${x.nickname}</td><td>${x.nickname == currentState.currentAsker ? "dealer" : (HasUserSelected(x.nickname) ? "selected" : "not selected")}</td><td>${x.points}</td></tr>`
+                    users += `<tr><td>${x.nickname}</td><td>${x.nickname == currentState.currentAsker ? "dealer" : (HasUserSelected(x.nickname) ? "selected" : "not selected")}</td><td>${x.points}</td><td><input type="button" value="Votekick" onclick="Kick('${x.nickname}')"></td></tr>`
                 })
                 points.innerHTML = `
-                    <tr><th>User</th><th>State</th><th>Points</th></tr>
+                    <tr><th>User</th><th>State</th><th>Points</th><th>Vote kick</th></tr>
                     ${users}
                 `
             }
