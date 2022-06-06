@@ -53,11 +53,12 @@ namespace Cards_against_humanity
 
         public static void Heartbeat(string id)
         {
+            if (!rooms.ContainsKey(id)) return;
             DateTime now = DateTime.Now;
             int before = rooms[id].users.Count;
             for (int i = 0; i < rooms[id].users.Count; i++)
             {
-                if(clients[rooms[id].users[i].nickname].received + new TimeSpan(0, 0, 10) < now)
+                if(!clients.ContainsKey(rooms[id].users[i].nickname) || clients[rooms[id].users[i].nickname].received + new TimeSpan(0, 0, 10) < now)
                 {
                     clients.Remove(rooms[id].users[i].nickname);
                     rooms[id].users.RemoveAt(i);
@@ -71,7 +72,8 @@ namespace Cards_against_humanity
 
         public static void Vote(string id, string nickname)
         {
-            for(int i = 0; i < rooms[id].users.Count; i++)
+            if (!rooms.ContainsKey(id)) return;
+            for (int i = 0; i < rooms[id].users.Count; i++)
             {
                 if (rooms[id].users[i].nickname == nickname) rooms[id].users[i].points++;
             }
@@ -80,6 +82,7 @@ namespace Cards_against_humanity
 
         public static void SelectCard(User u, List<string> contents, string id)
         {
+            if (!rooms.ContainsKey(id)) return;
             List<Card> cards = contents.ConvertAll<Card>(x => new Card
             {
                 content = x
@@ -116,7 +119,8 @@ namespace Cards_against_humanity
 
         public static void TurnCard(string content, string id)
         {
-            for(int i = 0; i < rooms[id].selections.Count; i++)
+            if (!rooms.ContainsKey(id)) return;
+            for (int i = 0; i < rooms[id].selections.Count; i++)
             {
                 for(int ii = 0; ii < rooms[id].selections[i].cards.Count; ii++)
                 {
@@ -132,7 +136,8 @@ namespace Cards_against_humanity
 
         public static void SendUpdatedRoomToAllUsers(string id)
         {
-            foreach(User u in rooms[id].users)
+            if (!rooms.ContainsKey(id)) return;
+            foreach (User u in rooms[id].users)
             {
                 if(clients.ContainsKey(u.nickname))
                 {
