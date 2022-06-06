@@ -64,6 +64,32 @@ namespace Cards_against_humanity
                     rooms[id].users.RemoveAt(i);
                     i--;
                 }
+
+                // kicking
+                if(rooms[id].selections.Count > rooms[id].users.Count - 1 && rooms[id].currentAsker == rooms[id].users[i].nickname)
+                {
+                    // asker
+                    if(rooms[id].roundStart != DateTime.MinValue && rooms[id].roundStart + new TimeSpan(0, 0, rooms[id].selectTime + 10 + rooms[id].users.Count * rooms[id].selectTime) < now)
+                    {
+                        // kick that idiot
+                        clients[rooms[id].users[i].nickname].request.SendString("kicked due to inactivity");
+                        clients.Remove(rooms[id].users[i].nickname);
+                        rooms[id].users.RemoveAt(i);
+                        i--;
+                    }
+                }
+                if (rooms[id].roundStart != DateTime.MinValue && rooms[id].selections.Count < rooms[id].users.Count - 1 && rooms[id].currentAsker != rooms[id].users[i].nickname)
+                {
+                    // normal player
+                    if (rooms[id].roundStart + new TimeSpan(0, 0, rooms[id].selectTime) < now)
+                    {
+                        // kick that idiot
+                        clients[rooms[id].users[i].nickname].request.SendString("kicked due to inactivity");
+                        clients.Remove(rooms[id].users[i].nickname);
+                        rooms[id].users.RemoveAt(i);
+                        i--;
+                    }
+                }
             }
             if (rooms[id].users.FirstOrDefault(x => x.nickname == rooms[id].currentAsker) == null) NextRound(id);
             if(before != rooms[id].users.Count) SendUpdatedRoomToAllUsers(id);
@@ -166,10 +192,16 @@ namespace Cards_against_humanity
 
             // randomly choose a question
             if (rooms[id].notAskedQuestions.Count <= 0) rooms[id].notAskedQuestions = new List<Card>(set.black);
-            if(rooms[id].notAskedQuestions.Count > 0) rooms[id].currentQuestion = rooms[id].notAskedQuestions[RandomExtension.random.Next(0, rooms[id].notAskedQuestions.Count)];
+            if (rooms[id].notAskedQuestions.Count > 0)
+            {
+                int question = RandomExtension.random.Next(0, rooms[id].notAskedQuestions.Count);
+                rooms[id].currentQuestion = rooms[id].notAskedQuestions[question];
+                rooms[id].notAskedQuestions.RemoveAt(question);
+            }
             else rooms[id].currentQuestion = new Card { content = "Heck add some cards to this set, idiot." };
             rooms[id].currentQuestion.selectionCount = GetAmountOfRequiredAnswerd(rooms[id].currentQuestion.content);
 
+            rooms[id].roundStart = DateTime.Now;
 
             // reset newCards
             rooms[id].newCards = new List<CardSelection>();

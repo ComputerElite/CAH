@@ -19,6 +19,8 @@ namespace Cards_against_humanity
         public List<Card> notAskedQuestions { get; set; } = new List<Card>();
         public List<CardSelection> newCards { get; set; } = new List<CardSelection>();
         public List<CardSelection> selections { get; set; } = new List<CardSelection>();
+        public DateTime roundStart { get; set; } = DateTime.Now;
+        public int selectTime { get; set; } = 35;
     }
 
     public class CreateRoomResponse

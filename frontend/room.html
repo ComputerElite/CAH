@@ -8,6 +8,7 @@
         <h2 id="cardsAgainst"></h2>
         <table id="points"></table>
         <div id="state"></div>
+        <div id="toGo"></div>
         <div id="question"></div>
         <div id="cards"></div>
         <input type="button" value="Next Round" onclick="Start()">
@@ -19,6 +20,7 @@
             const question = document.getElementById("question")
             const state = document.getElementById("state")
             const points = document.getElementById("points")
+            const toGo = document.getElementById("toGo")
             const params = new URLSearchParams(window.location.search)
             var currentCards = []
             var me = {}
@@ -33,10 +35,21 @@
             var lastPoints = []
             var allSelected = false
             var nextRoundInterval = 0
+            var secondsToGo = 0
+
+            if(!IsLoggedIn()) location = "/login"
 
             setInterval(() => {
                 Send("heartbeat|" + currentState.id)
             }, 5000)
+
+            setInterval(() => {
+                secondsToGo--;
+                if(secondsToGo < 0) {
+                    secondsToGo = currentState.selectTime + 10 + currentState.users.Count * currentState.selectTime
+                }
+                toGo.innerHTML = secondsToGo + " seconds left to select"
+            }, 1000)
 
             GetUserInfo().then(res => {
                 me = res
@@ -44,6 +57,7 @@
 
             function OnNewRound() {
                 clearInterval(nextRoundInterval)
+                secondsToGo = (Date.now() - new Date(currentState.roundStart) + currentState.selectTime * 1000) / 1000
                 state.style.visibility = "hidden"
                 console.log("new round")
                 // Remove selected cards
@@ -172,6 +186,11 @@
             ws.onmessage = (e) => {
                 turn = false
                 canVote = false
+                if(e.data.startsWith("kicked")) {
+                    alert(e.data)
+                    location = "/"
+                    return
+                }
                 currentState = JSON.parse(e.data)
                 cardsAgainst.innerHTML = "Cards against " + currentState.currentSet
                 if(currentState.selections.length == currentState.users.length - 1) AllUsersHaveSelected()
