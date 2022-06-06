@@ -207,6 +207,11 @@ namespace Cards_against_humanity
         public static void NextRound(string id)
         {
             if (!rooms.ContainsKey(id)) return;
+            if (rooms[id].users.Count <= 0)
+            {
+                rooms.Remove(id);
+                return;
+            }
             CardSet set = MongoDBInteractor.GetCardSet(rooms[id].currentSet);
 
             // randomly choose a question
