@@ -160,8 +160,10 @@ namespace Cards_against_humanity
 
             // randomly choose a question
             if (rooms[id].notAskedQuestions.Count <= 0) rooms[id].notAskedQuestions = new List<Card>(set.black);
-            rooms[id].currentQuestion = rooms[id].notAskedQuestions[RandomExtension.random.Next(0, rooms[id].notAskedQuestions.Count)];
+            if(rooms[id].notAskedQuestions.Count > 0) rooms[id].currentQuestion = rooms[id].notAskedQuestions[RandomExtension.random.Next(0, rooms[id].notAskedQuestions.Count)];
+            else rooms[id].currentQuestion = new Card { content = "Heck add some cards to this set, idiot." };
             rooms[id].currentQuestion.selectionCount = GetAmountOfRequiredAnswerd(rooms[id].currentQuestion.content);
+
 
             // reset newCards
             rooms[id].newCards = new List<CardSelection>();
