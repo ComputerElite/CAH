@@ -54,7 +54,8 @@ namespace Cards_against_humanity
         public static void Heartbeat(string id)
         {
             DateTime now = DateTime.Now;
-            for(int i = 0; i < rooms[id].users.Count; i++)
+            int before = rooms[id].users.Count;
+            for (int i = 0; i < rooms[id].users.Count; i++)
             {
                 if(clients[rooms[id].users[i].nickname].received + new TimeSpan(0, 0, 10) < now)
                 {
@@ -64,7 +65,7 @@ namespace Cards_against_humanity
                 }
             }
             if (rooms[id].users.FirstOrDefault(x => x.nickname == rooms[id].currentAsker) == null) NextRound(id);
-            SendUpdatedRoomToAllUsers(id);
+            if(before != rooms[id].users.Count) SendUpdatedRoomToAllUsers(id);
             if(rooms[id].users.Count <= 0) rooms.Remove(id);
         }
 
@@ -173,25 +174,27 @@ namespace Cards_against_humanity
 
             // select random asker
             rooms[id].currentAsker = rooms[id].users[RandomExtension.random.Next(0, rooms[id].users.Count)].nickname;
-
-            // give every user new cards to draw
-            foreach (User u in rooms[id].users)
+            if(set.white.Count >= 0)
             {
-                CardSelection s = new CardSelection
+                // give every user new cards to draw
+                foreach (User u in rooms[id].users)
                 {
-                    username = u.nickname
-                };
-                for(int i = 0; i < 20; i++)
-                {
-                    Card c = set.white[RandomExtension.random.Next(0, set.white.Count)];
-                    if(set.white.Count > 20 && s.cards.FirstOrDefault(x => x.content == c.content) != null)
+                    CardSelection s = new CardSelection
                     {
-                        i--;
-                        continue;
+                        username = u.nickname
+                    };
+                    for (int i = 0; i < 20; i++)
+                    {
+                        Card c = set.white[RandomExtension.random.Next(0, set.white.Count)];
+                        if (set.white.Count > 20 && s.cards.FirstOrDefault(x => x.content == c.content) != null)
+                        {
+                            i--;
+                            continue;
+                        }
+                        s.cards.Add(c);
                     }
-                    s.cards.Add(c);
+                    rooms[id].newCards.Add(s);
                 }
-                rooms[id].newCards.Add(s);
             }
             SendUpdatedRoomToAllUsers(id);
         }
