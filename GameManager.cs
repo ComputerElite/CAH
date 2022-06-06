@@ -156,7 +156,8 @@ namespace Cards_against_humanity
             CardSet set = MongoDBInteractor.GetCardSet(rooms[id].currentSet);
 
             // randomly choose a question
-            rooms[id].currentQuestion = set.black[RandomExtension.random.Next(0, set.black.Count)];
+            if (rooms[id].notAskedQuestions.Count <= 0) rooms[id].notAskedQuestions = new List<Card>(set.black);
+            rooms[id].currentQuestion = rooms[id].notAskedQuestions[RandomExtension.random.Next(0, rooms[id].notAskedQuestions.Count)];
             rooms[id].currentQuestion.selectionCount = GetAmountOfRequiredAnswerd(rooms[id].currentQuestion.content);
 
             // reset newCards

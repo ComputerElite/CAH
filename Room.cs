@@ -15,6 +15,8 @@ namespace Cards_against_humanity
         public string currentAsker { get; set; } = "";
         public string currentSet { get; set; } = "";
         public Card currentQuestion { get; set; } = new Card();
+        [JsonIgnore]
+        public List<Card> notAskedQuestions { get; set; } = new List<Card>();
         public List<CardSelection> newCards { get; set; } = new List<CardSelection>();
         public List<CardSelection> selections { get; set; } = new List<CardSelection>();
     }
