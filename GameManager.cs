@@ -60,6 +60,7 @@ namespace Cards_against_humanity
             if (!rooms.ContainsKey(id)) return;
             for(int i = 0; i < rooms[id].users.Count; i++)
             {
+                if (rooms[id].users.Count <= 0) return;
                 if(rooms[id].users[i].nickname == user)
                 {
                     // kick this idiot. NOW. but first do checks
