@@ -1,18 +1,20 @@
 function  FormatCardSet(set) {
     return `<div style="border-radius: 5px; background-color: #222222BB; padding: 10px; text-align: left;">
-                <h3 style="margin-bottom: 0px; margin-top: 0;">${set.name}</h3>
-                <div style="margin-top: 0; margin-left: 20px;">by ${set.editors.map(x => x.nickname).join(", ")}</div>
-                <div style="margin-top: 10px; font-size: 1.2em;">${set.description.replace(/\\n/g, "<br>")}</div>
+                <h3 style="margin-bottom: 0px; margin-top: 0;">${SafeFormat(set.name)}</h3>
+                <div style="margin-top: 0; margin-left: 20px;">by ${SafeFormat(set.editors.map(x => x.nickname).join(", "))}</div>
+                <div style="margin-top: 10px; font-size: 1.2em;">${SafeFormat(set.description.replace(/\\n/g, "<br>"))}</div>
                 <div style="margin-top: 10px; font-size: 1.2em;">${set.black.length} Questions, ${set.white.length} answers</div>
-                <input onclick="SelectSet('${set.name}')" type="button" value="Select">
+                <input onclick="SelectSet('${SafeFormat(set.name)}')" type="button" value="Select">
             </div>`
 }
 
 function FormatCard(card, isWhite = false, addRemoveButton = true, showButton = true, org = undefined, label = "Select", winner = false, allSelected = false) {
     if(!org) org = card
+    org.content = SafeFormat(org.content)
+    card.content = SafeFormat(card.content)
     return `<div style="position: relative;">
                 <div class="card" style="background-color: #${isWhite ? (winner ? 'FFFF00' : (allSelected ? '999999' : 'FFFFFF')) : '000000'}; color: #${isWhite ? '000000' : 'FFFFFF'};">
-                    <div style="margin-top: 10px; font-size: 1.2em;">${card.content.replace(/\\n/g, "<br>")}</div>
+                    <div style="margin-top: 10px; font-size: 1.2em;">${SafeFormat(card.content.replace(/\\n/g, "<br>"))}</div>
                     ${addRemoveButton ? `<input type="button" value="Remove" onclick='Remove${isWhite ? "White" : "Black" }(${JSON.stringify(card).replace(/\'/g, "\\g")})'>` : ``}
                     ${!addRemoveButton && showButton ? `<input type="button" value="${label}" onclick='Select(${JSON.stringify(org).replace(/\'/g, "\\'a")})'>` : ``}
                 </div>
@@ -21,9 +23,15 @@ function FormatCard(card, isWhite = false, addRemoveButton = true, showButton = 
 
 function FormatEditor(editor, method = "Editor") {
     return `<div style="border-radius: 5px; background-color: #000000; padding: 10px; text-align: left; color: #00000;">
-                <div style="margin-top: 10px; font-size: 1.2em;">${editor.nickname}</div>
-                <input type="button" value="Remove" onclick="Remove${method}('${editor.nickname}')">
+                <div style="margin-top: 10px; font-size: 1.2em;">${SafeFormat(editor.nickname)}</div>
+                <input type="button" value="Remove" onclick="Remove${method}('${SafeFormat(editor.nickname)}')">
             </div>`
+}
+
+function SafeFormat(text) {
+    var d = document.createElement("div")
+    d.innerText = text
+    return d.innerHTML
 }
 
 function IsLoggedIn() {

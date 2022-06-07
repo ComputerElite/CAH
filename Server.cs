@@ -111,6 +111,7 @@ namespace Cards_against_humanity
             }));
             server.AddRoute("POST", "/api/v1/creategame", new Func<ServerRequest, bool>(request =>
             {
+                if (CheckPOST(request)) return true;
                 User u = MongoDBInteractor.GetUserByToken(GetToken(request));
                 if(u == null)
                 {
@@ -126,6 +127,7 @@ namespace Cards_against_humanity
             }));
             server.AddRoute("POST", "/api/v1/createset", new Func<ServerRequest, bool>(request =>
             {
+                if (CheckPOST(request)) return true;
                 User u = MongoDBInteractor.GetUserByToken(GetToken(request));
                 CardSet set = JsonSerializer.Deserialize<CardSet>(request.bodyString);
                 set.editors = new List<User>();
@@ -137,6 +139,7 @@ namespace Cards_against_humanity
             }));
             server.AddRoute("POST", "/api/v1/updateeditors", new Func<ServerRequest, bool>(request =>
             {
+                if (CheckPOST(request)) return true;
                 User u = MongoDBInteractor.GetUserByToken(GetToken(request));
                 CardSet set = JsonSerializer.Deserialize<CardSet>(request.bodyString);
                 CardSet toUpdate = MongoDBInteractor.GetCardSet(set.name, u);
@@ -159,6 +162,7 @@ namespace Cards_against_humanity
             }));
             server.AddRoute("POST", "/api/v1/removefromset", new Func<ServerRequest, bool>(request =>
             {
+                if (CheckPOST(request)) return true;
                 User u = MongoDBInteractor.GetUserByToken(GetToken(request));
                 CardSet set = JsonSerializer.Deserialize<CardSet>(request.bodyString);
                 CardSet toUpdate = MongoDBInteractor.GetCardSet(set.name, u);
@@ -186,6 +190,7 @@ namespace Cards_against_humanity
             }));
             server.AddRoute("POST", "/api/v1/addtoset", new Func<ServerRequest, bool>(request =>
             {
+                if (CheckPOST(request)) return true;
                 User u = MongoDBInteractor.GetUserByToken(GetToken(request));
                 CardSet set = JsonSerializer.Deserialize<CardSet>(request.bodyString);
                 CardSet toUpdate = MongoDBInteractor.GetCardSet(set.name, u);
@@ -237,15 +242,27 @@ namespace Cards_against_humanity
             }));
             server.AddRoute("POST", "/api/v1/createuser", new Func<ServerRequest, bool>(request =>
             {
+                if (CheckPOST(request)) return true;
                 request.SendString(JsonSerializer.Serialize(UserSystem.ProcessCreateUser(JsonSerializer.Deserialize<LoginRequest>(request.bodyString))));
                 return true;
             }));
             server.AddRoute("POST", "/api/v1/login", new Func<ServerRequest, bool>(request =>
             {
+                if (CheckPOST(request)) return true;
                 request.SendString(JsonSerializer.Serialize(UserSystem.ProcessLogin(JsonSerializer.Deserialize<LoginRequest>(request.bodyString))));
                 return true;
             }));
             server.StartServer(config.port);
+        }
+
+        public bool CheckPOST(ServerRequest request)
+        {
+            if(request.bodyString.Contains("<") || request.bodyString.Contains(">"))
+            {
+                request.SendString("Request must not contains < or >", "text/play", 400);
+                return true;
+            }
+            return false;
         }
     }
 }

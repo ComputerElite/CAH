@@ -110,7 +110,7 @@
                     })
                     canVote = true
                     if(!IsAsker() && !voted) voted = currentState.users.map(x => x.points).reduce((a, b) => a + b, 0) != overallPoints
-                    cards.innerHTML += `${voted ? `<h4>${s.username}</h4>` : (IsAsker() ? `<h4>...</h4><input type="button" value="This is the best" onclick="Vote('${s.username}')">` : "<h4>...</h4>")} 
+                    cards.innerHTML += `${voted ? `<h4>${SafeFormat(s.username)}</h4>` : (IsAsker() ? `<h4>...</h4><input type="button" value="This is the best" onclick="Vote('SafeFormat(${s.username})')">` : "<h4>...</h4>")} 
                     <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px; margin-bottom: 30px;">
                             ${c}
                         </div>`
@@ -203,7 +203,7 @@
 
                 var users = ""
                 currentState.users.forEach(x => {
-                    users += `<tr><td>${x.nickname}</td><td>${x.nickname == currentState.currentAsker ? "dealer" : (HasUserSelected(x.nickname) ? "selected" : "not selected")}</td><td>${x.points}</td><td><input type="button" value="Votekick" onclick="Kick('${x.nickname}')"></td></tr>`
+                    users += `<tr><td>${SafeFormat(x.nickname)}</td><td>${x.nickname == currentState.currentAsker ? "dealer" : (HasUserSelected(x.nickname) ? "selected" : "not selected")}</td><td>${SafeFormat(x.points)}</td><td><input type="button" value="Votekick" onclick="Kick('${SafeFormat(x.nickname)}')"></td></tr>`
                 })
                 points.innerHTML = `
                     <tr><th>User</th><th>State</th><th>Points</th><th>Vote kick</th></tr>
