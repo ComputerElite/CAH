@@ -2,23 +2,36 @@ function  FormatCardSet(set) {
     return `<div style="border-radius: 5px; background-color: #222222BB; padding: 10px; text-align: left;">
                 <h3 style="margin-bottom: 0px; margin-top: 0;">${SafeFormat(set.name)}</h3>
                 <div style="margin-top: 0; margin-left: 20px;">by ${SafeFormat(set.editors.map(x => x.nickname).join(", "))}</div>
-                <div style="margin-top: 10px; font-size: 1.2em;">${SafeFormat(set.description.replace(/\\n/g, "<br>"))}</div>
+                <div style="margin-top: 10px; font-size: 1.2em;">${SafeFormat(set.description).replace(/\\n/g, "<br>")}</div>
                 <div style="margin-top: 10px; font-size: 1.2em;">${set.black.length} Questions, ${set.white.length} answers</div>
                 <input onclick="SelectSet('${SafeFormat(set.name)}')" type="button" value="Select">
             </div>`
 }
 
+async function GetSHA256(str) {
+    var x = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str))
+    const hashArray = Array.from(new Uint8Array(x));                     // convert buffer to byte array
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join(''); // convert bytes to hex string
+    return hashHex
+}
+
 function FormatCard(card, isWhite = false, addRemoveButton = true, showButton = true, org = undefined, label = "Select", winner = false, allSelected = false) {
-    if(!org) org = card
-    org.content = SafeFormat(org.content)
-    card.content = SafeFormat(card.content)
-    return `<div style="position: relative;">
-                <div class="card" style="background-color: #${isWhite ? (winner ? 'FFFF00' : (allSelected ? '999999' : 'FFFFFF')) : '000000'}; color: #${isWhite ? '000000' : 'FFFFFF'};">
-                    <div style="margin-top: 10px; font-size: 1.2em;">${SafeFormat(card.content.replace(/\\n/g, "<br>"))}</div>
-                    ${addRemoveButton ? `<input type="button" value="Remove" onclick='Remove${isWhite ? "White" : "Black" }(${JSON.stringify(card).replace(/\'/g, "\\g")})'>` : ``}
-                    ${!addRemoveButton && showButton ? `<input type="button" value="${label}" onclick='Select(${JSON.stringify(org).replace(/\'/g, "\\'a")})'>` : ``}
-                </div>
-            </div>`
+    return new Promise((resolve, reject) => {
+        if(!org) org = card
+        GetSHA256(org.content).then(hash => {
+            org.content = SafeFormat(org.content)
+            card.content = SafeFormat(card.content)
+            resolve(`<div style="position: relative;">
+                        <div class="card" style="background-color: #${isWhite ? (winner ? 'FFFF00' : (allSelected ? '999999' : 'FFFFFF')) : '000000'}; color: #${isWhite ? '000000' : 'FFFFFF'};">
+                            <div style="margin-top: 10px; font-size: 1.2em;">${card.content.replace(/\\n/g, "<br>")}</div>
+                            ${addRemoveButton ? `<input type="button" value="Remove" onclick='Remove${isWhite ? "White" : "Black" }("${hash}")'>` : ``}
+                            ${!addRemoveButton && showButton ? `<input type="button" value="${label}" onclick='Select("${hash}")'>` : ``}
+                        </div>
+                    </div>`)
+        })
+        
+    })
+    
 }
 
 function FormatEditor(editor, method = "Editor") {

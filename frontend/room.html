@@ -8,7 +8,6 @@
         <h2 id="cardsAgainst"></h2>
         <table id="points"></table>
         <div id="state"></div>
-        <div id="toGo"></div>
         <div id="question"></div>
         <div id="cards"></div>
         <input type="button" value="Next Round" onclick="Start()">
@@ -43,10 +42,12 @@
                 Send("heartbeat|" + currentState.id)
             }, 5000)
 
+            /*
             setInterval(() => {
                 secondsToGo--;
                 toGo.innerHTML = secondsToGo + " seconds left to select"
             }, 1000)
+            */
 
             GetUserInfo().then(res => {
                 me = res
@@ -58,6 +59,7 @@
                 state.style.visibility = "hidden"
                 console.log("new round")
                 // Remove selected cards
+                
                 selectedCards.forEach(c => {
                     currentCards = currentCards.filter(x => x.content == c)
                 })
@@ -91,7 +93,7 @@
             }
 
             // All users submitted card selection
-            function AllUsersHaveSelected() {
+            async function AllUsersHaveSelected() {
                 turn = true
                 state.innerHTML = "Asker will turn the cards"
                 cards.innerHTML = ""
@@ -101,21 +103,22 @@
                     }
                 })
                 lastPoints = currentState.users
-                currentState.selections.forEach(s => {
+                for(var s of currentState.selections) {
                     var c = ""
-                    s.cards.forEach(x => {
+                    for(var x of s.cards) {
                         var org = {content: x.content, visible: x.visible}
                         if(!x.visible) x.content = "answer"
-                        c += FormatCard(x, true, false, IsAsker() && !x.visible, org, "Flip card", s.username == winner)
-                    })
+                        console.log(x)
+                        c += await FormatCard(x, true, false, IsAsker() && !x.visible, org, "Flip card", s.username == winner, false)
+                    }
                     canVote = true
                     if(!IsAsker() && !voted) voted = currentState.users.map(x => x.points).reduce((a, b) => a + b, 0) != overallPoints
-                    cards.innerHTML += `${voted ? `<h4>${SafeFormat(s.username)}</h4>` : (IsAsker() ? `<h4>...</h4><input type="button" value="This is the best" onclick="Vote('SafeFormat(${s.username})')">` : "<h4>...</h4>")} 
+                    cards.innerHTML += `${voted ? `<h4>${SafeFormat(s.username)}</h4>` : (IsAsker() ? `<h4>...</h4><input type="button" value="This is the best" onclick="Vote(SafeFormat('${s.username}'))">` : "<h4>...</h4>")} 
                     <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px; margin-bottom: 30px;">
                             ${c}
                         </div>`
                         overallPoints = currentState.users.map(x => x.points).reduce((a, b) => a + b, 0)
-                })
+                }
             }
 
             function Vote(username) {
@@ -127,7 +130,9 @@
                 }, 5000)
             }
 
-            function Select(card) {
+            function Select(hash) {
+                var card = GetContentFromHash(hash)
+                console.log(card)
                 if(turn) {
                     // turn card
                     if(IsAsker() && !card.visible) Send("turn|" + currentState.id + "|" + card.content)
@@ -151,13 +156,13 @@
                 return currentState.currentAsker == me.nickname
             }
 
-            function DisplayCurrentCards() {
-                question.innerHTML = FormatCard(currentState.currentQuestion, false, false, false)
+            async function DisplayCurrentCards() {
+                question.innerHTML = await FormatCard(currentState.currentQuestion, false, false, false, undefined, "Select", false, false)
                 if(!IsAsker()) {
                     var c = ""
-                    currentCards.forEach(x => {
-                        c += FormatCard(x, true, false, true, undefined, "Select", selectedCards.includes(x.content), allSelected)
-                    })
+                    for(var x of currentCards) {
+                        c += await FormatCard(x, true, false, true, undefined, "Select", selectedCards.includes(x.content), allSelected)
+                    }
                     cards.innerHTML =  ` <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px;">
                             ${c}
                         </div>`
@@ -184,6 +189,29 @@
                 Send("kick|" + currentState.id + "|" + nickname)
             }
 
+            var hashLookup = {}
+
+            function GetContentFromHash(hash) {
+                return hashLookup[hash]
+            }
+
+            function CreateLookupDictionary() {
+                var t = {}
+                currentState.newCards.forEach(x => {
+                    x.cards.forEach(x => {
+                        GetSHA256(x.content).then(h => {
+                            t[h] = x
+                        })
+                    })
+                })
+                currentCards.forEach(x => {
+                    GetSHA256(x.content).then(h => {
+                        t[h] = x
+                    })
+                })
+                hashLookup = t
+            }
+
             ws.onmessage = (e) => {
                 turn = false
                 canVote = false
@@ -193,6 +221,7 @@
                     return
                 }
                 currentState = JSON.parse(e.data)
+                CreateLookupDictionary()
                 cardsAgainst.innerHTML = "Cards against " + currentState.currentSet
                 if(currentState.selections.length == currentState.users.length - 1) AllUsersHaveSelected()
                 if(currentState.currentAsker != lastAsker || currentState.currentQuestion.content != lastQuestion) {

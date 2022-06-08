@@ -97,6 +97,7 @@ namespace Cards_against_humanity
                 }
 
                 // kicking
+                /*
                 if (rooms[id].roundStart != DateTime.MinValue && rooms[id].selections.Count < rooms[id].users.Count - 1 && rooms[id].currentAsker != rooms[id].users[i].nickname)
                 {
                     // normal player
@@ -109,10 +110,14 @@ namespace Cards_against_humanity
                         i--;
                     }
                 }
+                */
             }
+            if (!rooms.ContainsKey(id)) return;
             if (rooms[id].users.FirstOrDefault(x => x.nickname == rooms[id].currentAsker) == null) NextRound(id);
-            if(before != rooms[id].users.Count) SendUpdatedRoomToAllUsers(id);
-            if(rooms[id].users.Count <= 0) rooms.Remove(id);
+            if (!rooms.ContainsKey(id)) return;
+            if (before != rooms[id].users.Count) SendUpdatedRoomToAllUsers(id);
+            if (!rooms.ContainsKey(id)) return;
+            if (rooms[id].users.Count <= 0) rooms.Remove(id);
         }
 
         public static void Vote(string id, string nickname)

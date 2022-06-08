@@ -102,11 +102,13 @@
                 document.getElementById("answer").value = ""
             }
 
-            function RemoveBlack(card) {
+            function RemoveBlack(hash) {
+                var card = GetContentFromHash(hash)
                 UpdateSetRemove({black: [card], name: currentSet.name})
             }
 
-            function RemoveWhite(card) {
+            function RemoveWhite(hash) {
+                var card = GetContentFromHash(hash)
                 UpdateSetRemove({white: [card], name: currentSet.name})
             }
 
@@ -166,43 +168,65 @@
                 DisplayCardsOfSelectedSet()
             }
 
-            function DisplayCardsOfSelectedSet() {
-                var s = ""
+            var hashLookup = {}
+
+            function GetContentFromHash(hash) {
+                return hashLookup[hash]
+            }
+
+            function CreateLookupDictionary() {
+                var t = {}
                 currentSet.black.forEach(x => {
-                    s += FormatCard(x, false)
+                    GetSHA256(x.content).then(h => {
+                        t[h] = x
+                    })
                 })
+                currentSet.white.forEach(x => {
+                    GetSHA256(x.content).then(h => {
+                        t[h] = x
+                    })
+                })
+                hashLookup = t
+            }
+
+            async function DisplayCardsOfSelectedSet() {
+                var s = ""
+                CreateLookupDictionary()
+                for(var x of currentSet.black) {
+                    s += await FormatCard(x, false)
+                }
                 questions.innerHTML = ` <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px;">
                             ${s}
                         </div>`
 
                 s = ""
-                currentSet.white.forEach(x => {
-                    s += FormatCard(x, true)
-                })
+                for(var x of currentSet.white) {
+                    s += await FormatCard(x, true)
+                }
                 answers.innerHTML = ` <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px;">
                             ${s}
                         </div>`
                 s = ""
-                currentSet.editors.forEach(x => {
+                for(var x of currentSet.editors) {
                     s += FormatEditor(x)
-                })
+                }
                 editors.innerHTML = ` <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px;">
                             ${s}
                         </div>`
                 s = ""
-                currentSet.players.forEach(x => {
+                for(var x of currentSet.players) {
                     s += FormatEditor(x, "Player")
-                })
+                }
                 players.innerHTML = ` <div style="display: grid; grid-template-columns: 33% 33% 33%; column-gap: 10px; row-gap: 10px;">
                             ${s}
                         </div>`
                 isPrivate.checked = currentSet.isPrivate
-                
             }
 
             GetUserInfo().then(res => {
                 me = res
             })
+            
 
             function ShowSets() {
                 var s = ""
