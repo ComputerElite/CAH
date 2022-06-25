@@ -5,6 +5,9 @@
         <title>Create a room - Cards against ...</title>
     </head>
     <body>
+        <h1>Join a room</h1>
+        <input type="number" placeholder="room id" id="roomid">
+        <input type="button" value="Join" onclick="Join()">
         <h1>Create a room</h1>
         <h2>Existing sets made for everyone</h2>
         <h4>Select the set you wanna use and we'll start playing right away</h4>
@@ -19,6 +22,10 @@
             var cardSets = []
             const sets = document.getElementById("sets")
             FetchSets()
+
+            function Join() {
+                document.location = "/room?id=" + document.getElementById("roomid").value
+            }
 
             function FetchSets() {
                 jfetch("/api/v1/allsets").then(res => {
