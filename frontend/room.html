@@ -204,6 +204,13 @@
                         })
                     })
                 })
+                currentState.selections.forEach(x => {
+                    x.cards.forEach(x => {
+                        GetSHA256(x.content).then(h => {
+                            t[h] = x
+                        })
+                    })
+                })
                 currentCards.forEach(x => {
                     GetSHA256(x.content).then(h => {
                         t[h] = x
