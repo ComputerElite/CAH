@@ -106,7 +106,12 @@ namespace Cards_against_humanity
                         new BsonDocument("players", new BsonDocument("$elemMatch", new BsonDocument("nickname", u.nickname)))
                     }
                 }
-            }).ToList();
+            }).ToList().ConvertAll(x =>
+            {
+                x.white.Clear();
+                x.black.Clear();
+                return x;
+            });
         }
 
         public static void UpdateSet(CardSet set)
